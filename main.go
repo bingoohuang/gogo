@@ -5,13 +5,15 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/mitchellh/go-homedir"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/mitchellh/go-homedir"
 )
 
 var pkgName string
@@ -75,17 +77,29 @@ func main() {
 
 func Download() string {
 	cacheZip, _ := homedir.Expand("~/.go-starter/master.zip")
+	exists := false
 	if !disableCache {
-		if _, err := os.Stat(cacheZip); err == nil {
-			return cacheZip
+		if st, err := os.Stat(cacheZip); err == nil {
+			exists = true
+			// cache will be expired in 10 days
+			if st.ModTime().Add(time.Duration(240) * time.Hour).After(time.Now()) {
+				fmt.Printf("cache %s found!\n", cacheZip)
+				return cacheZip
+			} else {
+				fmt.Printf("cache %s expired in 10 days!\n", cacheZip)
+			}
 		}
 	}
 
 	cacheZipDir, _ := homedir.Expand("~/.go-starter/")
 	_ = os.MkdirAll(cacheZipDir, os.ModePerm)
 	starterZipURL := "https://github.com/bingoohuang/go-starter/archive/master.zip"
+	fmt.Printf("start to download %s\n", starterZipURL)
 	if err := DownloadFile(cacheZip, starterZipURL); err != nil {
-		log.Fatal(err)
+		if !exists {
+			log.Fatal(err)
+		}
+		fmt.Printf("failed to download %v, use cached instead!\n", err)
 	}
 
 	return cacheZip
