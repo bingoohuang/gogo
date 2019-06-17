@@ -3,6 +3,9 @@
 gogo to generate a golang project based on go-starter
 
 
+
+
+
 ```bash
 $ ./gogo -h
 Usage of ./gogo:
@@ -19,3 +22,7 @@ gogotest created successfully in ../gogotest!
 ```
 
 
+function:
+
+1. replacing `go-starter` to pkg
+1. replacing `GO_STARTER` to SNAKE_CASE of pkg
