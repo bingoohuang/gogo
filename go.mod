@@ -1,4 +1,4 @@
-module gogo
+module github.com/bingoohuang/gogo
 
 go 1.12
 
