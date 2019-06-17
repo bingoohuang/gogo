@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bingoohuang/strcase"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -46,7 +47,8 @@ type FileInterceptor interface {
 }
 
 type GogoInterceptor struct {
-	PkgName []byte
+	PkgName        []byte
+	PKG_SNAKE_CASE []byte
 }
 
 var _ FileInterceptor = (*GogoInterceptor)(nil)
@@ -62,12 +64,16 @@ func (r GogoInterceptor) Match(filename string) bool {
 }
 
 func (r GogoInterceptor) Intercept(src []byte) []byte {
-	return bytes.Replace(src, []byte("go-starter"), r.PkgName, -1)
+	bs := bytes.Replace(src, []byte("go-starter"), r.PkgName, -1)
+	return bytes.Replace(bs, []byte("GO_STARTER"), r.PKG_SNAKE_CASE, -1)
 }
 
 func main() {
 	zipFile := Download()
-	interceptor := GogoInterceptor{PkgName: []byte(pkgName)}
+	interceptor := GogoInterceptor{
+		PkgName:        []byte(pkgName),
+		PKG_SNAKE_CASE: []byte(strcase.ToSnakeUpper(pkgName)),
+	}
 	if err := Unzip(zipFile, targetDir, interceptor); err != nil {
 		log.Fatal(err)
 	}
