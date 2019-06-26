@@ -1,6 +1,6 @@
 # gogo
 
-gogo to generate a golang project based on go-starter
+gogo to generate a golang project based on [go-starter](https://github.com/bingoohuang/go-starter)
 
 
 
