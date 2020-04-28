@@ -74,7 +74,9 @@ func (r gogoInterceptor) match(filename string) bool {
 }
 
 func (r gogoInterceptor) intercept(src []byte) []byte {
-	bs := bytes.Replace(src, []byte("gostarter"), r.PkgName, -1)
+	bs := bytes.Replace(src, []byte("github.com/bingoohuang/gostarter"), r.PkgName, -1)
+	bs = bytes.Replace(bs, []byte("gostarter"), r.PkgName, -1)
+
 	return bytes.Replace(bs, []byte("GOSTARTER"), r.PkgSnakeCase, -1)
 }
 
