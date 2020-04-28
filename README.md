@@ -3,7 +3,7 @@
 gogo to generate a golang project based on [gostarter](https://github.com/bingoohuang/gostarter)
 
 
-1. 安装: `go get github.com/bingoohuang/gogo`
+1. 安装: `go get -u -v github.com/bingoohuang/gogo`
 1. 使用：
 
     ```bash

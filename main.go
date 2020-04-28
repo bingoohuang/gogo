@@ -26,10 +26,18 @@ var (
 
 // nolint
 func init() {
+	version := false
+
 	flag.BoolVar(&disableCache, "disableCache", false, "disable cache of go-starter project downloading")
+	flag.BoolVar(&version, "v", false, "show version")
 	flag.StringVar(&targetDir, "dir", ".", "target directory")
 	flag.StringVar(&pkgName, "pkg", "", "package name, default to last element of target directory")
 	flag.Parse()
+
+	if version {
+		fmt.Println("v2020-04-28")
+		os.Exit(0)
+	}
 
 	if targetDir == "" {
 		targetDir, _ = os.Getwd()
