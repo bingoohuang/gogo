@@ -17,15 +17,18 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-var pkgName string
-var targetDir string
-var disableCache bool
+// nolint gochecknoglobals
+var (
+	pkgName      string
+	targetDir    string
+	disableCache bool
+)
 
+// nolint
 func init() {
 	flag.BoolVar(&disableCache, "disableCache", false, "disable cache of go-starter project downloading")
 	flag.StringVar(&targetDir, "dir", ".", "target directory")
 	flag.StringVar(&pkgName, "pkg", "", "package name, default to last element of target directory")
-
 	flag.Parse()
 
 	if targetDir == "" {
@@ -41,21 +44,20 @@ func init() {
 	}
 }
 
-type FileInterceptor interface {
-	Match(filename string) bool
-	Intercept(src []byte) []byte
+type fileInterceptor interface {
+	match(filename string) bool
+	intercept(src []byte) []byte
 }
 
-type GogoInterceptor struct {
-	PkgName        []byte
-	PKG_SNAKE_CASE []byte
+type gogoInterceptor struct {
+	PkgName      []byte
+	PkgSnakeCase []byte
 }
 
-var _ FileInterceptor = (*GogoInterceptor)(nil)
+var _ fileInterceptor = (*gogoInterceptor)(nil)
 
-func (r GogoInterceptor) Match(filename string) bool {
-	ext := filepath.Ext(filename)
-	switch ext {
+func (r gogoInterceptor) match(filename string) bool {
+	switch filepath.Ext(filename) {
 	case ".go", ".md", ".mod", ".html":
 		return true
 	default:
@@ -63,17 +65,18 @@ func (r GogoInterceptor) Match(filename string) bool {
 	}
 }
 
-func (r GogoInterceptor) Intercept(src []byte) []byte {
-	bs := bytes.Replace(src, []byte("go-starter"), r.PkgName, -1)
-	return bytes.Replace(bs, []byte("GO_STARTER"), r.PKG_SNAKE_CASE, -1)
+func (r gogoInterceptor) intercept(src []byte) []byte {
+	bs := bytes.Replace(src, []byte("gostarter"), r.PkgName, -1)
+	return bytes.Replace(bs, []byte("GOSTARTER"), r.PkgSnakeCase, -1)
 }
 
 func main() {
-	zipFile := Download()
-	interceptor := GogoInterceptor{
-		PkgName:        []byte(pkgName),
-		PKG_SNAKE_CASE: []byte(strcase.ToSnakeUpper(pkgName)),
+	zipFile := download()
+	interceptor := gogoInterceptor{
+		PkgName:      []byte(pkgName),
+		PkgSnakeCase: []byte(strcase.ToSnakeUpper(pkgName)),
 	}
+
 	if err := Unzip(zipFile, targetDir, interceptor); err != nil {
 		log.Fatal(err)
 	}
@@ -81,30 +84,35 @@ func main() {
 	fmt.Println(pkgName + " created successfully in " + targetDir + "!")
 }
 
-func Download() string {
-	cacheZip, _ := homedir.Expand("~/.go-starter/master.zip")
-	exists := false
+const starterZipURL = "https://github.com/bingoohuang/gostarter/archive/master.zip"
+
+func download() string {
+	cacheZip, _ := homedir.Expand("~/.gostarter/master.zip")
+	cacheExists := false
+
 	if !disableCache {
 		if st, err := os.Stat(cacheZip); err == nil {
-			exists = true
+			cacheExists = true
 			// cache will be expired in 10 days
-			if st.ModTime().Add(time.Duration(240) * time.Hour).After(time.Now()) {
+			if st.ModTime().Add(240 * time.Hour).After(time.Now()) { // nolint gomnd
 				fmt.Printf("cache %s found!\n", cacheZip)
 				return cacheZip
-			} else {
-				fmt.Printf("cache %s expired in 10 days!\n", cacheZip)
 			}
+
+			fmt.Printf("cache %s expired in 10 days!\n", cacheZip)
 		}
 	}
 
-	cacheZipDir, _ := homedir.Expand("~/.go-starter/")
+	cacheZipDir, _ := homedir.Expand("~/.gostarter/")
 	_ = os.MkdirAll(cacheZipDir, os.ModePerm)
-	starterZipURL := "https://github.com/bingoohuang/go-starter/archive/master.zip"
+
 	fmt.Printf("start to download %s\n", starterZipURL)
+
 	if err := DownloadFile(cacheZip, starterZipURL); err != nil {
-		if !exists {
+		if !cacheExists {
 			log.Fatal(err)
 		}
+
 		fmt.Printf("failed to download %v, use cached instead!\n", err)
 	}
 
@@ -115,7 +123,7 @@ func Download() string {
 // write as it downloads and not load the whole file into memory.
 func DownloadFile(destFile, url string) error {
 	// Get the data
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) // nolint gosec
 	if err != nil {
 		return err
 	}
@@ -135,12 +143,13 @@ func DownloadFile(destFile, url string) error {
 
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
+
 	return err
 }
 
 // Unzip will decompress a zip archive, moving all files and folders
 // within the zip file (parameter 1) to an output directory (parameter 2).
-func Unzip(src, dest string, interceptor FileInterceptor) error {
+func Unzip(src, dest string, interceptor fileInterceptor) error {
 	r, err := zip.OpenReader(src)
 	if err != nil {
 		return err
@@ -148,11 +157,7 @@ func Unzip(src, dest string, interceptor FileInterceptor) error {
 	defer r.Close()
 
 	for _, f := range r.File {
-		fn := f.Name
-		if strings.HasPrefix(fn, "go-starter-master/") {
-			fn = fn[len("go-starter-master/"):]
-		}
-
+		fn := strings.TrimPrefix(f.Name, "gostarter-master/")
 		if fn == "" {
 			continue
 		}
@@ -166,12 +171,10 @@ func Unzip(src, dest string, interceptor FileInterceptor) error {
 		}
 
 		if f.FileInfo().IsDir() {
-			// Make Folder
-			os.MkdirAll(fpath, os.ModePerm)
+			_ = os.MkdirAll(fpath, os.ModePerm)
 			continue
 		}
 
-		// Make File
 		if err = os.MkdirAll(filepath.Dir(fpath), os.ModePerm); err != nil {
 			return err
 		}
@@ -186,11 +189,11 @@ func Unzip(src, dest string, interceptor FileInterceptor) error {
 			return err
 		}
 
-		if interceptor.Match(fn) {
+		if interceptor.match(fn) {
 			buf := new(bytes.Buffer)
-			buf.ReadFrom(rc)
-			src := interceptor.Intercept(buf.Bytes())
-			outFile.Write(src)
+			_, _ = buf.ReadFrom(rc)
+			src := interceptor.intercept(buf.Bytes())
+			_, _ = outFile.Write(src)
 		} else {
 			_, err = io.Copy(outFile, rc)
 		}
@@ -203,5 +206,6 @@ func Unzip(src, dest string, interceptor FileInterceptor) error {
 			return err
 		}
 	}
+
 	return nil
 }
