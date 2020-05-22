@@ -23,5 +23,5 @@ gogo to generate a golang project based on [gostarter](https://github.com/bingoo
 
 function:
 
-1. replacing `go-starter` to pkg
-1. replacing `GO_STARTER` to SNAKE_CASE of pkg
+1. replacing `gostarter` to pkg
+1. replacing `GOSTARTER` to SNAKE_CASE of pkg
