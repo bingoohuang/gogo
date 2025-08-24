@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bingoohuang/strcase"
+	"github.com/bingoohuang/ngg/ss"
 	"github.com/mitchellh/go-homedir"
 )
 
@@ -84,7 +84,7 @@ func main() {
 	zipFile := download()
 	interceptor := gogoInterceptor{
 		PkgName:      []byte(pkgName),
-		PkgSnakeCase: []byte(strcase.ToSnakeUpper(pkgName)),
+		PkgSnakeCase: []byte(ss.ToSnakeUpper(pkgName)),
 	}
 
 	if err := Unzip(zipFile, targetDir, interceptor); err != nil {
